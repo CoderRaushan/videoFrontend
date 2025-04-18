@@ -27,7 +27,7 @@ const RoomPage = () => {
       peer.peer.addTrack(track, stream);
     }
   }, [remoteSocketId, socket]);
-  
+
   const handleIncommingCall = useCallback(
     async ({ from, offer }) => {
       setRemoteSocketId(from);
@@ -45,8 +45,8 @@ const RoomPage = () => {
 
   const sendStreams = useCallback(() => {
     const senders = peer.peer.getSenders();
-    const existingTracks = senders.map(sender => sender.track);
-  
+    const existingTracks = senders.map((sender) => sender.track);
+
     for (const track of myStream.getTracks()) {
       if (!existingTracks.includes(track)) {
         peer.peer.addTrack(track, myStream);
@@ -90,7 +90,7 @@ const RoomPage = () => {
   useEffect(() => {
     peer.peer.addEventListener("track", async (ev) => {
       const remoteStream = ev.streams;
-      console.log("GOT TRACKS!!");
+      console.log("GOT TRACKS!!", remoteStream);
       setRemoteStream(remoteStream[0]);
     });
   }, []);
@@ -127,23 +127,33 @@ const RoomPage = () => {
       {myStream && (
         <>
           <h1>My Stream</h1>
-          <ReactPlayer
-            playing
-            height="100px"
-            width="200px"
-            url={myStream}
-          />
+          <video
+            ref={(video) => {
+              if (video && myStream) {
+                video.srcObject = myStream;
+              }
+            }}
+            autoPlay
+            playsInline
+            muted
+            style={{ width: "300px", height: "200px", background: "black" }}
+          ></video>
         </>
       )}
       {remoteStream && (
         <>
           <h1>Remote Stream</h1>
-          <ReactPlayer
-            playing
-            height="100px"
-            width="200px"
-            url={remoteStream}
-          />
+          <video
+            ref={(video) => {
+              if (video && remoteStream) {
+                video.srcObject = remoteStream;
+              }
+            }}
+            autoPlay
+            playsInline
+            muted={false} // If you want to hear remote audio
+            style={{ width: "300px", height: "200px", background: "black" }}
+          ></video>
         </>
       )}
     </div>
