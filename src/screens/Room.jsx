@@ -22,8 +22,12 @@ const RoomPage = () => {
     const offer = await peer.getOffer();
     socket.emit("user:call", { to: remoteSocketId, offer });
     setMyStream(stream);
+    // ✅ send stream now
+    for (const track of stream.getTracks()) {
+      peer.peer.addTrack(track, stream);
+    }
   }, [remoteSocketId, socket]);
-
+  
   const handleIncommingCall = useCallback(
     async ({ from, offer }) => {
       setRemoteSocketId(from);
@@ -40,8 +44,13 @@ const RoomPage = () => {
   );
 
   const sendStreams = useCallback(() => {
+    const senders = peer.peer.getSenders();
+    const existingTracks = senders.map(sender => sender.track);
+  
     for (const track of myStream.getTracks()) {
-      peer.peer.addTrack(track, myStream);
+      if (!existingTracks.includes(track)) {
+        peer.peer.addTrack(track, myStream);
+      }
     }
   }, [myStream]);
 
