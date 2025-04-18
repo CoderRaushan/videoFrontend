@@ -11,7 +11,6 @@ const RoomPage = () => {
   const myVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
 
-  // Update video refs when streams change
   useEffect(() => {
     if (myVideoRef.current && myStream) {
       myVideoRef.current.srcObject = myStream;
@@ -36,7 +35,11 @@ const RoomPage = () => {
     });
     setMyStream(stream);
 
-    // Add tracks BEFORE creating the offer
+    // Recreate peer if closed
+    if (peer.peer.signalingState === "closed") {
+      peer.createPeer();
+    }
+
     stream.getTracks().forEach((track) => {
       peer.peer.addTrack(track, stream);
     });
@@ -54,6 +57,10 @@ const RoomPage = () => {
         video: true,
       });
       setMyStream(stream);
+
+      if (peer.peer.signalingState === "closed") {
+        peer.createPeer();
+      }
 
       stream.getTracks().forEach((track) => {
         peer.peer.addTrack(track, stream);
@@ -129,13 +136,20 @@ const RoomPage = () => {
     handleNegoNeedFinal,
   ]);
 
-  // Add negotiation listener
+  // Add negotiationneeded listener
   useEffect(() => {
     peer.peer.addEventListener("negotiationneeded", handleNegoNeeded);
     return () => {
       peer.peer.removeEventListener("negotiationneeded", handleNegoNeeded);
     };
   }, [handleNegoNeeded]);
+
+  // Clean up peer connection on unmount
+  useEffect(() => {
+    return () => {
+      peer.close();
+    };
+  }, []);
 
   return (
     <div>
