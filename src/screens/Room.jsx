@@ -1,5 +1,4 @@
 import React, { useEffect, useCallback, useState } from "react";
-// import ReactPlayer from "react-player";
 import peer from "../service/peer";
 import { useSocket } from "../context/SocketProvider";
 
@@ -19,13 +18,12 @@ const RoomPage = () => {
       audio: true,
       video: true,
     });
-    const offer = await peer.getOffer();
-    socket.emit("user:call", { to: remoteSocketId, offer });
     setMyStream(stream);
-    // ✅ send stream now
     for (const track of stream.getTracks()) {
       peer.peer.addTrack(track, stream);
     }
+    const offer = await peer.getOffer();
+    socket.emit("user:call", { to: remoteSocketId, offer });
   }, [remoteSocketId, socket]);
 
   const handleIncommingCall = useCallback(
@@ -36,7 +34,9 @@ const RoomPage = () => {
         video: true,
       });
       setMyStream(stream);
-      console.log(`Incoming Call`, from, offer);
+      for (const track of stream.getTracks()) {
+        peer.peer.addTrack(track, stream);
+      }
       const ans = await peer.getAnswer(offer);
       socket.emit("call:accepted", { to: from, ans });
     },
@@ -46,7 +46,6 @@ const RoomPage = () => {
   const sendStreams = useCallback(() => {
     const senders = peer.peer.getSenders();
     const existingTracks = senders.map((sender) => sender.track);
-
     for (const track of myStream.getTracks()) {
       if (!existingTracks.includes(track)) {
         peer.peer.addTrack(track, myStream);
@@ -89,9 +88,9 @@ const RoomPage = () => {
 
   useEffect(() => {
     peer.peer.addEventListener("track", async (ev) => {
-      const remoteStream = ev.streams;
+      const remoteStream = ev.streams[0];
       console.log("GOT TRACKS!!", remoteStream);
-      setRemoteStream(remoteStream[0]);
+      setRemoteStream(remoteStream);
     });
   }, []);
 
@@ -129,9 +128,7 @@ const RoomPage = () => {
           <h1>My Stream</h1>
           <video
             ref={(video) => {
-              if (video && myStream) {
-                video.srcObject = myStream;
-              }
+              if (video) video.srcObject = myStream;
             }}
             autoPlay
             playsInline
@@ -145,13 +142,11 @@ const RoomPage = () => {
           <h1>Remote Stream</h1>
           <video
             ref={(video) => {
-              if (video && remoteStream) {
-                video.srcObject = remoteStream;
-              }
+              if (video) video.srcObject = remoteStream;
             }}
             autoPlay
             playsInline
-            muted={false} // If you want to hear remote audio
+            muted={false}
             style={{ width: "300px", height: "200px", background: "black" }}
           ></video>
         </>
